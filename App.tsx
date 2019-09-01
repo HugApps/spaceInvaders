@@ -3,13 +3,15 @@ import { StyleSheet, Text, View, Dimensions } from 'react-native';
 import SpaceShip from './Entities/SpaceShip';
 import ProjectTile from './Entities/Projectile';
 import Asteroid from './Entities/Asteriod';
-import { GameEngine } from "react-native-game-engine";
+import { GameEngine, GameLoop } from "react-native-game-engine";
 import Matter from "matter-js";
 import Asteriod from './Entities/Asteriod';
 //360x640
 Matter.Common.isElement = () => false;
 const { width: WIDTH, height: HEIGHT } = Dimensions.get("window");
-
+const engine = Matter.Engine.create({ enableSleeping: false });
+engine.world.gravity.y = 0;
+const world = engine.world;
 const RADIUS = 25;
 
 
@@ -73,14 +75,16 @@ export default class App extends React.Component {
     touches.filter(t => t.type === "press").forEach(t => {
       let ship = entities["ship"];
       let projectTile = Matter.Bodies.rectangle(ship.body.position.x, ship.body.position.y - 50, 10, 100);
-      Matter.Body.setMass(projectTile,50);
-      Matter.Body.setVelocity(projectTile,{x:0,y:6});
-      Matter.Body.applyForce(projectTile,{x:ship.body.position.x,y:ship.body.position.y},{x:0,y:-5});
- 
-     // Matter.Body.setMass(projectTile,10);
+      projectTile.label = "projectile"
+      projectTile.friction  =0;
+      Matter.Body.setMass(projectTile, 50);
+      Matter.Body.setVelocity(projectTile, { x: 0, y: 6 });
+      Matter.Body.applyForce(projectTile, { x: ship.body.position.x, y: ship.body.position.y }, { x: 0, y: -5 });
+
+      // Matter.Body.setMass(projectTile,10);
       Matter.World.add(world, [projectTile]);
       let newId = "projectile" + projectTile.id;
-      entities[newId] = { body: projectTile, velocity: { x: 0, y: -10 },  renderer: <ProjectTile /> }
+      entities[newId] = { body: projectTile, velocity: { x: 0, y: -10 }, renderer: <ProjectTile /> }
 
 
 
@@ -95,11 +99,14 @@ export default class App extends React.Component {
     let spawnX = Math.floor(Math.random() * (WIDTH - 0 + 1)) + 0;
     let flowRate = Math.random();
     let speed = Math.floor(Math.random() * (10 - 5 + 1)) + 3;
-    if (flowRate < 0.05) {
+    if (flowRate < 0.02) {
       let length = Object.keys(entities).length;
       let aseteroidBody = Matter.Bodies.circle(spawnX, 0, 50);
-      Matter.Body.applyForce(aseteroidBody,{x:spawnX,y:-10},{x:0,y:3});
-      Matter.Body.setMass(aseteroidBody,500);
+      aseteroidBody.friction =0;
+      aseteroidBody.label = "asteroid";
+      Matter.Body.applyForce(aseteroidBody, { x: spawnX, y: - 5 }, { x: 0, y: 0.5 });
+      Matter.Body.setMass(aseteroidBody, 500);
+      //console.log(aseteroidBody.label);
       Matter.World.add(world, [aseteroidBody]);
       let ship = entities['ship'];
       let asteroid = {
@@ -108,7 +115,7 @@ export default class App extends React.Component {
         renderer: <Asteroid />
       }
 
-      entities['asteroid' + asteroid.body.id] = asteroid;
+      entities[asteroid.body.label + asteroid.body.id] = asteroid;
 
     }
 
@@ -121,90 +128,151 @@ export default class App extends React.Component {
   }
 
 
+  //remove entities that no longer have a body, and is out of bounds
   checkForDestruction(gameElements, { touches }) {
-    //destroy objects that are out of bounds
+  
+    let world = gameElements["physics"].world;
+    let remainingBodies = Matter.Composite.allBodies(engine.world);
+    let existingBodies = remainingBodies.map((b) => { return b.label + b.id });
+    
     Object.keys(gameElements).forEach((key) => {
+
+
       let gameObj = gameElements[key];
       if (gameObj.velocity) {
         let delta = { x: 0, y: 0 }
-        if (!this.checkIfEntityisWithinBounds(gameElements[key], delta)) {
+        // If entity array key does not match with any existing body, delete it
+        if (!existingBodies.includes(key)) {
           delete gameElements[key];
+        } else {
+          // if it exists then check if out of bounds
+          if (!this.checkIfEntityisWithinBounds(gameElements[key], delta)) {
+            let bodyToRemove = gameElements[key].body;
+            Matter.Composite.remove(world, bodyToRemove);
+            delete gameElements[key];
+            // also remove the physics object from the worl
+          }
         }
       }
     })
+    
     return gameElements
   }
 
 
-  applyPhysics(entities, { time }) {
+applyPhysics(entities, { time }) {
 
 
 
-    let engine = entities["physics"].engine;
-    Matter.Engine.update(engine, time.delta);
-  
+  let engine = entities["physics"].engine;
+  Object.keys(entities).forEach((key)=>{
+    let entity = entities[key];
+    if(entity.body && entity.body.label=='asteroid'){
+      Matter.Body.applyForce(entity.body, { x: entity.body.position.x, y: entity.body.position.y - 5 }, { x: 0, y: 0.5 });
+    }
+    
+  })
+  Matter.Engine.update(engine, time.delta);
+
+  return entities;
+}
+
+//moves asteroids, and other linear movment objects
+passiveMovement(entities, { touches }) {
+  if (entities) {
+    Object.keys(entities).forEach((id) => {
+
+
+      let body = entities[id];
+
+      if (body && body.velocity) {
+        let newPos = { x: body.body.position.x + body.body.velocity.x, y: body.body.position.y + body.body.velocity.y };
+        body.body.position.y = body.body.position.y + body.body.velocity.y;
+        body.body.position.x = body.body.position.x + body.body.velocity.x;
+
+      }
+
+
+    })
+
     return entities;
   }
+}
 
-  //moves asteroids, and other linear movment objects
-  passiveMovement(entities, { touches }) {
-    if (entities) {
-      Object.keys(entities).forEach((id) => {
+componentDidMount() {
+
+  let MatterEvents = Matter.Events.on(engine, 'collisionActive', (event) => {
+    //console.log('event fired' ,event.pairs);
+    let collisionPairs = event.pairs;
+    collisionPairs.forEach((pair,index)=>{
+
+     /* if (pair.bodyA.label == pair.bodyB.label) {
+        Matter.Composite.remove(world, pair.bodyA);
+        Matter.Composite.remove(world, pair.bodyB);
+        //console.log('collision between '+ event.pairs[0].label +'s');
+      }*/
+
+      if (pair.bodyA.label == 'asteroid' && pair.bodyB.label =='projectile') {
+        Matter.Composite.remove(world, pair.bodyA);
+        Matter.Composite.remove(world, pair.bodyB);
+        //console.log('collision between '+ event.pairs[0].label +'s');
+      }
+
+      if (pair.bodyA.label == 'projectile' && pair.bodyB.label =='asteroid') {
+        Matter.Composite.remove(world, pair.bodyA);
+        Matter.Composite.remove(world, pair.bodyB);
+        //console.log('collision between '+ event.pairs[0].label +'s');
+      }
+
+    })
+   
+
+  });
+
+}
+
+componentWillUnmount() {
+  Matter.Events.off()
+
+}
 
 
-        let body = entities[id];
-
-        if (body && body.velocity) {
-          let newPos = { x: body.body.position.x + body.body.velocity.x, y: body.body.position.y + body.body.velocity.y };
-          body.body.position.y = body.body.position.y + body.body.velocity.y;
-          body.body.position.x = body.body.position.x + body.body.velocity.x;
-
-        }
+render() {
 
 
-      })
+  const shipBody = Matter.Bodies.rectangle(WIDTH / 2, HEIGHT / 2, 50, 50);
+  shipBody.ignoreGravity = true;
+  //Matter.World.add(world, [shipBody]);
 
-      return entities;
-    }
-  }
 
-  render() {
 
-    const engine = Matter.Engine.create({ enableSleeping: false });
-    engine.world.gravity.y = 0;
-    const world = engine.world;
-    const shipBody = Matter.Bodies.rectangle(WIDTH / 2, HEIGHT / 2, 50, 50);
-    shipBody.ignoreGravity = true;
-    Matter.World.add(world, [shipBody]);
-  
-    
 
-    return (
-      <GameEngine
-        style={styles.container}
-        systems={[
-         
-          this.spawnAsteroid,
-          this.updateShipPosition,
-          this.fireWeapon,
-          this.applyPhysics,
-          this.checkForDestruction,
-         
-        
-        ]} //-- We can add as many systems as needed
-        entities={{
-          physics: {
-            engine: engine,
-            world: world,
-          },
-          ship: { body: shipBody,  renderer: <SpaceShip /> },
-          //-- Notice that each entity has a unique id (required)
-        }}>
+  return (
+    <GameEngine
+      style={styles.container}
+      systems={[
 
-      </GameEngine>
+        this.spawnAsteroid,
+        this.updateShipPosition,
+        this.fireWeapon,
+        this.applyPhysics,
+        this.checkForDestruction,
 
-    );
-  }
+
+      ]} //-- We can add as many systems as needed
+      entities={{
+        physics: {
+          engine: engine,
+          world: world,
+        },
+        ship: { body: shipBody, renderer: <SpaceShip /> },
+        //-- Notice that each entity has a unique id (required)
+      }}>
+
+    </GameEngine>
+
+  );
+}
 }
 
 const styles = StyleSheet.create({
