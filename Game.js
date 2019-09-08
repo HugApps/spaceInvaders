@@ -16,7 +16,7 @@ const RADIUS = 25;
 
 
 
-export default class App extends React.Component {
+export default class Game extends React.Component {
   constructor(props) {
     super(props);
 

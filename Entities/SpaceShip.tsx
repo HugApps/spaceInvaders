@@ -18,7 +18,7 @@ export default class SpaceShip extends React.Component {
     const x = this.props.body.position.x;
     const y =  this.props.body.position.y;
     return (
-      <View  style={{position:"absolute", backgroundColor:'black',width:50,height:50, left: x, top: y }}/>
+      <View  style={{position:"absolute", backgroundColor:'blue',width:50,height:50, left: x, top: y }}/>
     );
   
 }
