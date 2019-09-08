@@ -265,10 +265,7 @@ export default class Game extends React.Component {
 
   }
 
-  componentWillUnmount() {
-    Matter.Events.off()
-
-  }
+ 
 
 
   render() {
