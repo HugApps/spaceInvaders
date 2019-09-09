@@ -1,4 +1,5 @@
 import React from 'react';
+import * as Font from 'expo-font';
 import { TouchableOpacity, StyleSheet, Text, View, Dimensions, StatusBar, Alert } from 'react-native';
 //360x640
 
@@ -7,6 +8,7 @@ export default class MainMenu extends React.Component {
         super(props);
 
     }
+
 
 
     static navigationOptions = {
@@ -53,11 +55,13 @@ const styles = StyleSheet.create({
     buttonText: {
         color: 'green',
         fontSize: 20,
+        fontFamily: 'SpaceInvaders'
     },
 
     title: {
         color: 'green',
-        fontSize: 30
+        fontSize: 30,
+        fontFamily: 'SpaceInvaders'
     },
     container: {
         flex: 1,

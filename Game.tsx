@@ -44,10 +44,10 @@ export default class Game extends React.Component {
       let ship = entities["ship"];
       if (ship && ship.body.position) {
         if (this.checkIfEntityisWithinBounds(ship, { x: t.delta.pageX, y: t.delta.pageY })) {
-          ship.body.position.x = ship.body.position.x + t.delta.pageX;
-          ship.body.position.y = ship.body.position.y + t.delta.pageY;
-          Matter.Body.setVelocity(ship.body, { x: ship.body.position.x + t.delta.pageX, y: ship.body.position.y + t.delta.pageY });
-          Matter.Body.setPosition(ship.body, { x: ship.body.position.x + t.delta.pageX, y: ship.body.position.y + t.delta.pageY });
+          //ship.body.position.x = ship.body.position.x + t.delta.pageX;
+          //ship.body.position.y = ship.body.position.y + t.delta.pageY;
+          // Matter.Body.setVelocity(ship.body, { x: ship.body.position.x + t.delta.pageX, y: ship.body.position.y + t.delta.pageY });
+          Matter.Body.translate(ship.body, { x: t.delta.pageX, y: t.delta.pageY });
 
         }
 
@@ -218,24 +218,26 @@ export default class Game extends React.Component {
   }
 
   componentDidMount() {
-    this.setState({score:0});
+    this.setState({ score: 0 });
 
     let MatterEvents = Matter.Events.on(engine, 'collisionActive', (event) => {
-
+      if (this.state.gameStopped){
+        return;
+      }
       let collisionPairs = event.pairs;
       collisionPairs.forEach((pair, index) => {
 
         if (pair.bodyA.label == 'asteroid' && pair.bodyB.label == 'projectile') {
           Matter.Composite.remove(world, pair.bodyA);
           Matter.Composite.remove(world, pair.bodyB);
-          this.setState({score:this.state.score + 100});
+          this.setState({ score: this.state.score + 100 });
 
         }
 
         if (pair.bodyA.label == 'projectile' && pair.bodyB.label == 'asteroid') {
           Matter.Composite.remove(world, pair.bodyA);
           Matter.Composite.remove(world, pair.bodyB);
-          this.setState({score:this.state.score + 100});
+          this.setState({ score: this.state.score + 100 });
 
         }
 
@@ -265,7 +267,11 @@ export default class Game extends React.Component {
 
   }
 
- 
+
+  static navigationOptions = {
+    header: null
+  }
+
 
 
   render() {
@@ -276,12 +282,13 @@ export default class Game extends React.Component {
     shipBody.label = 'player';
     Matter.World.add(world, [shipBody]);
     Matter.Body.setStatic(shipBody, true);
-    console.log(this.state);
+    console.log('render');
+
+
 
 
 
     return (
-
       <View style={styles.container}>
 
         <Text style={{ color: 'green' }}>{score}</Text>

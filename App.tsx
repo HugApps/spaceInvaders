@@ -1,13 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View, Dimensions, StatusBar, Alert } from 'react-native';
-import SpaceShip from './Entities/SpaceShip';
-import ProjectTile from './Entities/Projectile';
-import Asteroid from './Entities/Asteriod';
-import { GameEngine, GameLoop, } from "react-native-game-engine";
-import Matter from "matter-js";
+import * as Font from 'expo-font';
 import { createStackNavigator } from 'react-navigation-stack';
-import {  createAppContainer } from "react-navigation";
-import Asteriod from './Entities/Asteriod';
+import { createAppContainer } from "react-navigation";
+import { TouchableOpacity, StyleSheet, Text, View, Dimensions, StatusBar, Alert } from 'react-native';
 import MainMenu from './MainMenu';
 import Game from './Game';
 //360x640
@@ -16,14 +11,14 @@ import Game from './Game';
 const APPNAVIGATOR = createStackNavigator({
   MainMenu: {
     screen: MainMenu,
-    header:null,
+    header: null,
   },
   Game: {
     screen: Game,
-    header:null,
+    header: null,
   },
 
- },
+},
   {
     initialRouteName: "MainMenu"
   }
@@ -33,15 +28,29 @@ const AppContainer = createAppContainer(APPNAVIGATOR);
 export default class App extends React.Component {
   constructor(props) {
     super(props);
+    this.state = {loaded:false}
 
+  }
 
+ componentDidMount() {
+    Font.loadAsync({
+      'SpaceInvaders': require('./assets/fonts/space_invaders.ttf')
+    }).then( (a,b) =>{  console.log(a); console.log(b); this.setState( {loaded: true } );} );
+  
   }
 
 
   render() {
-    return (<AppContainer/>)
-  }
+      if(this.state.loaded == true){
+        return (<AppContainer />);
+      } else {
+        return ( <View><Text>Loading</Text></View>)
+      }
     
+    
+   
+  }
+
 }
 
 
