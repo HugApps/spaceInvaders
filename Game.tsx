@@ -3,9 +3,9 @@ import { StyleSheet, Text, View, Dimensions, StatusBar, Alert } from 'react-nati
 import SpaceShip from './Entities/SpaceShip';
 import ProjectTile from './Entities/Projectile';
 import Asteroid from './Entities/Asteriod';
+import ScoreCounter from './Components/ScoreCounter';
 import { GameEngine, GameLoop, } from "react-native-game-engine";
 import Matter from "matter-js";
-import Asteriod from './Entities/Asteriod';
 //360x640
 Matter.Common.isElement = () => false;
 const { width: WIDTH, height: HEIGHT } = Dimensions.get("window");
@@ -13,18 +13,17 @@ const engine = Matter.Engine.create({ enableSleeping: false });
 engine.world.gravity.y = 0;
 const world = engine.world;
 const RADIUS = 25;
-
-
+// temporary use of collision filters to try improve collisions
+const weaponsCollisionFilter = 0x0003
+const enemiesCollisionFilter = 0x0002
+const shipCollisionFilter = 0x0004
 
 export default class Game extends React.Component {
   constructor(props) {
     super(props);
-
     this.state = {
       gameStopped: false,
-      score: 0
-    }
-    this.state = {
+      score: 0,
       x: WIDTH / 2 - RADIUS,
       y: HEIGHT / 2 - RADIUS,
       delay: 30,
@@ -44,13 +43,8 @@ export default class Game extends React.Component {
       let ship = entities["ship"];
       if (ship && ship.body.position) {
         if (this.checkIfEntityisWithinBounds(ship, { x: t.delta.pageX, y: t.delta.pageY })) {
-          //ship.body.position.x = ship.body.position.x + t.delta.pageX;
-          //ship.body.position.y = ship.body.position.y + t.delta.pageY;
-          // Matter.Body.setVelocity(ship.body, { x: ship.body.position.x + t.delta.pageX, y: ship.body.position.y + t.delta.pageY });
           Matter.Body.translate(ship.body, { x: t.delta.pageX, y: t.delta.pageY });
-
         }
-
       }
     });
 
@@ -58,7 +52,6 @@ export default class Game extends React.Component {
   };
 
   checkIfEntityisWithinBounds(entity, change) {
-
     let gameObject = entity;
     let x = gameObject.body.position.x + change.x;
     let y = gameObject.body.position.y + change.y;
@@ -72,20 +65,17 @@ export default class Game extends React.Component {
 
   }
 
-  //checks to see if there is a collision between two objects
-  checkForCollision(elementA, elementB) {
-
-
-
-
-  }
-
   fireWeapon(entities, { touches }) {
     if (this.state.gameStopped == true) { return }
     let world = entities["physics"].world;
     touches.filter(t => t.type === "press").forEach(t => {
       let ship = entities["ship"];
-      let projectTile = Matter.Bodies.rectangle(ship.body.position.x, ship.body.position.y - 50, 10, 100);
+      let projectTile = Matter.Bodies.rectangle(ship.body.position.x, ship.body.position.y - 50, 10, 100, {
+        collisionFilter: {
+          category: weaponsCollisionFilter,
+          mask: enemiesCollisionFilter
+        }
+      });
       projectTile.label = "projectile"
       projectTile.friction = 0;
       projectTile.frictionAir = 0;
@@ -98,14 +88,9 @@ export default class Game extends React.Component {
       Matter.World.add(world, [projectTile]);
       let newId = "projectile" + projectTile.id;
       entities[newId] = { body: projectTile, velocity: { x: 0, y: -10 }, renderer: <ProjectTile /> }
-
-
-
     });
-
     return entities;
   };
-
 
   spawnAsteroid(entities, { touches, time }) {
     if (this.state.gameStopped == true) { return }
@@ -114,11 +99,21 @@ export default class Game extends React.Component {
     let flowRate = Math.random();
     let speed = Math.floor(Math.random() * (10 - 5 + 1)) + 3;
     if (flowRate < 0.02) {
-      let length = Object.keys(entities).length;
 
-      let aseteroidBody = Matter.Bodies.rectangle(spawnX, 0, 60, 60);//Matter.Bodies.circle(spawnX, 0, 50);
+      let aseteroidBody = Matter.Bodies.rectangle(
+        spawnX,
+        0,
+        60,
+        60,
+        {
+          collisionFilter: {
+            category: enemiesCollisionFilter,
+            mask: weaponsCollisionFilter | shipCollisionFilter
+          }
+        });//Matter.Bodies.circle(spawnX, 0, 50);
       aseteroidBody.friction = 0;
       aseteroidBody.frictionAir = 0;
+      aseteroidBody.intertia = 100;
       aseteroidBody.label = "asteroid";
       Matter.Body.applyForce(aseteroidBody, { x: spawnX, y: - 5 }, { x: 0, y: 2 });
       Matter.Body.setMass(aseteroidBody, 500);
@@ -134,15 +129,8 @@ export default class Game extends React.Component {
       entities[asteroid.body.label + asteroid.body.id] = asteroid;
 
     }
-
     return entities;
-
-
-
-
-
   }
-
 
   //remove entities that no longer have a body, and is out of bounds
   checkForDestruction(gameElements, { touches }) {
@@ -159,9 +147,6 @@ export default class Game extends React.Component {
       delete gameElements['ship']
     };
     Object.keys(gameElements).forEach((key) => {
-
-
-
       let gameObj = gameElements[key];
       if (gameObj.velocity) {
         let delta = { x: 0, y: 0 }
@@ -179,19 +164,13 @@ export default class Game extends React.Component {
         }
       }
     })
-
     return gameElements
   }
 
-
   applyPhysics(entities, { time }) {
-
     if (this.state.gameStopped == true) { return }
-
     let engine = entities["physics"].engine;
-
     Matter.Engine.update(engine, time.delta);
-
     return entities;
   }
 
@@ -199,29 +178,20 @@ export default class Game extends React.Component {
   passiveMovement(entities, { touches }) {
     if (entities) {
       Object.keys(entities).forEach((id) => {
-
-
         let body = entities[id];
-
         if (body && body.velocity) {
           let newPos = { x: body.body.position.x + body.body.velocity.x, y: body.body.position.y + body.body.velocity.y };
           body.body.position.y = body.body.position.y + body.body.velocity.y;
           body.body.position.x = body.body.position.x + body.body.velocity.x;
-
         }
-
-
       })
-
       return entities;
     }
   }
 
   componentDidMount() {
-    this.setState({ score: 0 });
-
     let MatterEvents = Matter.Events.on(engine, 'collisionActive', (event) => {
-      if (this.state.gameStopped){
+      if (this.state.gameStopped) {
         return;
       }
       let collisionPairs = event.pairs;
@@ -230,20 +200,20 @@ export default class Game extends React.Component {
         if (pair.bodyA.label == 'asteroid' && pair.bodyB.label == 'projectile') {
           Matter.Composite.remove(world, pair.bodyA);
           Matter.Composite.remove(world, pair.bodyB);
-          this.setState({ score: this.state.score + 100 });
-
+          this.refs.scoreCounter.updateScore(100)
         }
 
         if (pair.bodyA.label == 'projectile' && pair.bodyB.label == 'asteroid') {
           Matter.Composite.remove(world, pair.bodyA);
           Matter.Composite.remove(world, pair.bodyB);
+          this.refs.scoreCounter.updateScore(100)
           this.setState({ score: this.state.score + 100 });
-
         }
 
         if (pair.bodyA.label == 'player' && pair.bodyB.label == 'asteroid') {
           Matter.Composite.remove(world, pair.bodyA);
           Matter.Composite.remove(world, pair.bodyB);
+
           this.setState({ gameStopped: true })
           this.refs.engine.stop();
           Alert.alert('Game over', 'game over thanks for playing');
@@ -258,53 +228,40 @@ export default class Game extends React.Component {
           Alert.alert('Game over', 'game over thanks for playing');
 
         }
-
-
       })
-
-
     });
-
   }
-
 
   static navigationOptions = {
     header: null
   }
 
-
-
   render() {
 
     const { score } = this.state
-    const shipBody = Matter.Bodies.rectangle(WIDTH / 2, HEIGHT / 2, 50, 50);
+    const shipBody = Matter.Bodies.rectangle(WIDTH / 2, HEIGHT + 10, 50, 50, {
+      collisionFilter: {
+        category: shipCollisionFilter,
+        mask: enemiesCollisionFilter
+      }
+    });
     shipBody.ignoreGravity = true;
     shipBody.label = 'player';
     Matter.World.add(world, [shipBody]);
     Matter.Body.setStatic(shipBody, true);
-    console.log('render');
-
-
-
-
 
     return (
       <View style={styles.container}>
-
-        <Text style={{ color: 'green' }}>{score}</Text>
-
+        <ScoreCounter ref={"scoreCounter"} score={this.state.score} />
         <GameEngine
           ref={"engine"}
           style={styles.container}
           systems={[
-
             this.spawnAsteroid,
             this.updateShipPosition,
             this.fireWeapon,
             this.applyPhysics,
             this.checkForDestruction,
-
-
           ]} //-- We can add as many systems as needed
           entities={{
             physics: {
@@ -314,21 +271,9 @@ export default class Game extends React.Component {
             ship: { body: shipBody, renderer: <SpaceShip /> },
             //-- Notice that each entity has a unique id (required)
           }}>
-
           <StatusBar hidden={true} />
-
-
         </GameEngine>
-
-
-
-
       </View>
-
-
-
-
-
     );
   }
 }

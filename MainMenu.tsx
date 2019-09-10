@@ -6,10 +6,7 @@ import { TouchableOpacity, StyleSheet, Text, View, Dimensions, StatusBar, Alert 
 export default class MainMenu extends React.Component {
     constructor(props) {
         super(props);
-
     }
-
-
 
     static navigationOptions = {
         header: null
@@ -18,10 +15,8 @@ export default class MainMenu extends React.Component {
     renderButtonText(text) {
         return (
             <View style={{ padding: 10 }}>
-
                 <Text style={styles.buttonText}>{text}</Text>
             </View>
-
         )
     }
 
@@ -35,13 +30,10 @@ export default class MainMenu extends React.Component {
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginBottom: '25%' }}>
                     <TouchableOpacity onPress={() => { this.startGame() }} >
                         {this.renderButtonText('Start')}
-
                     </TouchableOpacity>
-
                     {this.renderButtonText('How to play')}
                     {this.renderButtonText('Settings')}
                 </View>
-
             </View>
         )
     }
@@ -68,7 +60,6 @@ const styles = StyleSheet.create({
         backgroundColor: 'black',
 
     },
-
 
 });
 

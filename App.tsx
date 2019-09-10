@@ -6,8 +6,6 @@ import { TouchableOpacity, StyleSheet, Text, View, Dimensions, StatusBar, Alert 
 import MainMenu from './MainMenu';
 import Game from './Game';
 //360x640
-
-
 const APPNAVIGATOR = createStackNavigator({
   MainMenu: {
     screen: MainMenu,
@@ -28,29 +26,22 @@ const AppContainer = createAppContainer(APPNAVIGATOR);
 export default class App extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {loaded:false}
+    this.state = { loaded: false }
 
   }
 
- componentDidMount() {
+  componentDidMount() {
     Font.loadAsync({
       'SpaceInvaders': require('./assets/fonts/space_invaders.ttf')
-    }).then( (a,b) =>{  console.log(a); console.log(b); this.setState( {loaded: true } );} );
-  
-  }
+    }).then((a, b) => { console.log(a); console.log(b); this.setState({ loaded: true }); });
 
+  }
 
   render() {
-      if(this.state.loaded == true){
-        return (<AppContainer />);
-      } else {
-        return ( <View><Text>Loading</Text></View>)
-      }
-    
-    
-   
+    if (this.state.loaded == true) {
+      return (<AppContainer />);
+    } else {
+      return (<View><Text>Loading</Text></View>)
+    }
   }
-
 }
-
-
