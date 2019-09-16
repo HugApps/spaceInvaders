@@ -33,7 +33,7 @@ export default class App extends React.Component {
   componentDidMount() {
     Font.loadAsync({
       'SpaceInvaders': require('./assets/fonts/space_invaders.ttf')
-    }).then((a, b) => { console.log(a); console.log(b); this.setState({ loaded: true }); });
+    }).then((a, b) => {  this.setState({ loaded: true }); });
 
   }
 

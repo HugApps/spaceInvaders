@@ -42,6 +42,8 @@ export default class Game extends React.Component {
     touches.filter(t => t.type === "move").forEach(t => {
       let ship = entities["ship"];
       if (ship && ship.body.position) {
+      
+
         if (this.checkIfEntityisWithinBounds(ship, { x: t.delta.pageX, y: t.delta.pageY })) {
           Matter.Body.translate(ship.body, { x: t.delta.pageX, y: t.delta.pageY });
         }
@@ -115,7 +117,7 @@ export default class Game extends React.Component {
       aseteroidBody.frictionAir = 0;
       aseteroidBody.intertia = 100;
       aseteroidBody.label = "asteroid";
-      Matter.Body.applyForce(aseteroidBody, { x: spawnX, y: - 5 }, { x: 0, y: 2 });
+      Matter.Body.applyForce(aseteroidBody, { x: spawnX, y: - 5 }, { x: 0, y: 1 });
       Matter.Body.setMass(aseteroidBody, 500);
 
       Matter.World.add(world, [aseteroidBody]);
@@ -239,7 +241,7 @@ export default class Game extends React.Component {
   render() {
 
     const { score } = this.state
-    const shipBody = Matter.Bodies.rectangle(WIDTH / 2, HEIGHT + 10, 50, 50, {
+    const shipBody = Matter.Bodies.rectangle(WIDTH / 2, HEIGHT, 50, 50, {
       collisionFilter: {
         category: shipCollisionFilter,
         mask: enemiesCollisionFilter
@@ -268,7 +270,7 @@ export default class Game extends React.Component {
               engine: engine,
               world: world,
             },
-            ship: { body: shipBody, renderer: <SpaceShip /> },
+            ship: { body: shipBody, renderer: <SpaceShip   ref={"player"}  /> },
             //-- Notice that each entity has a unique id (required)
           }}>
           <StatusBar hidden={true} />

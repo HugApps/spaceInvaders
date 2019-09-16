@@ -1,0 +1,6 @@
+september 16
+- fix odd game over glitch
+- refactor
+- scrolling background
+- hit detection
+

@@ -16,7 +16,7 @@ export default class ScoreCounter extends React.Component {
     }
     render() {
         const { score } = this.state
-        console.log(score)
+      
         return (
             <View>
                  <Text style={{ fontSize:20,marginTop:20,color: 'green' , fontFamily:'SpaceInvaders' }}>{this.state.score}</Text>
